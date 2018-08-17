@@ -1,0 +1,358 @@
+
+(* Channels *)
+free 		ch_src_ts 	: channel.
+free		ch_ts_rto	: channel.
+free		ch_src_spc	: channel.
+free		ch_ui_spc	: channel		[private].
+free		ch_spc_src	: channel.
+free		ch_ts_ib	: channel.
+
+(* *)
+free Cocks		: bitstring [ private ].
+free RSA		: bitstring [ private ].
+
+(* Constants and Variables *)
+const		id_as_ui	: bitstring		[private].
+const		pw_as_ui	: bitstring		[private].
+const		id_ib_ui	: bitstring		[private].
+const		pw_ib_ui	: bitstring		[private].
+const		id_rto_vmi	: bitstring		[private].
+const		pw_rto_vmi	: bitstring		[private].
+const		id_rto_vi	: bitstring		[private].
+const		pw_rto_vi	: bitstring		[private].
+const		id_rto_tsi	: bitstring.							(* Not Confidential *)
+const		pw_rto_tsi	: bitstring		[private].
+
+const		s_as		: bitstring		[private].
+const		r_as		: bitstring		[private].
+const		sk_ui_as	: bitstring		[private].				(*without registration code, this is const. with registration coode, this will be a variable*)
+const		s_ib		: bitstring		[private].
+const		r_ib		: bitstring		[private].
+const		sk_ui_ib	: bitstring		[private].
+const		s1_rto		: bitstring		[private].
+const		r1_rto		: bitstring		[private].
+const		sk_vmi_rto	: bitstring		[private].
+const		sk_vi_rto	: bitstring		[private].
+const		s2_rto		: bitstring		[private].
+const		r2_rto		: bitstring		[private].
+const		sk_tsi_rto	: bitstring		[private].
+const		sk_spc_src	: bitstring		[private].
+
+(* Constructors *)
+fun		pubKey 			(bitstring)								: bitstring.
+fun		sign 			(bitstring, bitstring)					: bitstring.
+fun		checkSign 		(bitstring, bitstring, bitstring)		: bitstring.
+fun		sEnc			(bitstring, bitstring)					: bitstring.
+fun		xor				(bitstring, bitstring)					: bitstring.
+fun		concat			(bitstring, bitstring)					: bitstring.
+fun		exp				(bitstring, bitstring)					: bitstring.
+fun		h				(bitstring)								: bitstring.
+
+(* Destructors *)
+reduc forall 		m:bitstring, key:bitstring;		sDec(sEnc(m, key), key) = m.
+reduc forall		x:bitstring,   y:bitstring;		split(concat(x,y)) = (x,y).
+
+(* Equations *)
+equation forall 	a:bitstring, b:bitstring;		xor(xor(a,b), b) = a.
+
+(* Events *)
+event	user_begin(bitstring).
+event	user_end(bitstring).
+event	uid_begin(bitstring).
+event	uid_end(bitstring).
+event	vm_begin(bitstring).
+event	vm_end(bitstring).
+event	spc_begin(bitstring).
+event	spc_end(bitstring).
+event	src_begin(bitstring).
+event	src_end(bitstring).
+event	ts_begin(bitstring).
+event	ts_end(bitstring).
+event	rto_begin(bitstring).
+event	rto_end(bitstring).
+event	ib_begin(bitstring).
+event	ib_end(bitstring).
+event	as_begin(bitstring).
+event	as_end(bitstring).
+
+(************************* Queries **********************************)
+query	attacker (id_as_ui).
+query	attacker (pw_as_ui).
+query	attacker (id_ib_ui).
+query	attacker (pw_ib_ui).
+query	attacker (id_rto_vmi).
+query	attacker (pw_rto_vmi).
+(* query	attacker (id_rto_tsi). *)		(* NOT CONFIDENTIAL *)
+query	attacker (pw_rto_tsi).
+query	attacker (s_as).
+query	attacker (r_as).
+query	attacker (sk_ui_as).
+query	attacker (s_ib).
+query	attacker (r_ib).
+query	attacker (sk_ui_ib).
+query	attacker (s_ib).
+query	attacker (r_ib).
+query	attacker (sk_ui_ib).
+query	attacker (s1_rto).
+query	attacker (r1_rto).
+query	attacker (sk_vmi_rto).
+query	attacker (s2_rto).
+query	attacker (r2_rto).
+query	attacker (sk_tsi_rto).
+query	attacker (sk_spc_src).
+
+query	id:bitstring;		inj-event(user_end(id_as_ui))	==>	inj-event(user_begin(id_as_ui)).
+query	id:bitstring;		inj-event(uid_end(id_as_ui))	==>	inj-event(uid_begin(id_as_ui)).
+query	id:bitstring;		inj-event(vm_end(id_rto_vmi))	==>	inj-event(vm_begin(id_rto_vmi)).
+query	id:bitstring;		inj-event(spc_end(id_ib_ui))	==>	inj-event(spc_begin(id_ib_ui)).
+query	id:bitstring;		inj-event(src_end(id_rto_vmi))	==>	inj-event(src_begin(id_rto_vmi)).
+query	id:bitstring;		inj-event(ts_end(id_rto_tsi))	==>	inj-event(ts_begin(id_rto_tsi)).
+query	id:bitstring;		inj-event(rto_end(id_rto_tsi))	==>	inj-event(rto_begin(id_rto_tsi)).
+query	id:bitstring;		inj-event(ib_end(id_ib_ui))		==>	inj-event(ib_begin(id_ib_ui)).
+query	id:bitstring;		inj-event(as_end(id_as_ui))		==>	inj-event(as_begin(id_as_ui)).
+
+(************************** Processes *********************************)
+let user (id_as_ui:bitstring, pw_as_ui:bitstring) =
+	event user_begin(id_as_ui);
+	
+	(*M7-in-from-spc*)
+	in(ch_ui_spc, (prompt_for_pw:bitstring));
+	(*M8-out-to-spc*)
+	out(ch_ui_spc, (pw_as_ui));
+	
+	
+	event user_end(id_as_ui);
+	0.
+
+let uid (id_as_ui:bitstring, pw_as_ui:bitstring, sk_ui_as:bitstring) =
+	event uid_begin(id_as_ui);
+	event uid_end(id_as_ui);
+	0.
+
+let vm (id_rto_vmi:bitstring, pw_rto_vmi:bitstring) =
+	event vm_begin(id_rto_vmi);
+	event vm_end(id_rto_vmi);
+	0.
+
+let spc (id_ib_ui:bitstring, sk_spc_src:bitstring) =
+	event spc_begin(id_ib_ui);
+
+	(*M6-in-from-src*)
+	in(ch_src_spc, (nx8:bitstring, pdata8:bitstring, h8:bitstring));
+
+	(*M7-out-to-ui*)
+	let n8' = xor(nx8, sk_spc_src) in
+	let h8' = h(concat(concat(nx8, n8'), pdata8)) in
+	if (h8' = h8) then
+	let payment_req' = xor(pdata8, n8') in
+	(* split payment_req' to retrieve individual elements *)
+	let (tolltkt:bitstring, fare:bitstring) = split (payment_req') in
+	new prompt_for_pw:bitstring;
+	out(ch_ui_spc, (prompt_for_pw));
+
+	(*M8-in-from-ui*)
+	in(ch_ui_spc, (pw_as_ui:bitstring));
+
+	(*M9-out-to-src*)
+	new n9:bitstring;
+	new status_approved:bitstring;
+	new purpose_toll_tkt:bitstring;
+	let dataForIB = concat(concat(concat(status_approved, fare), purpose_toll_tkt), id_ib_ui) in
+	let pdata9 = xor(dataForIB, n9) in
+	let nx9 = xor(xor(xor(n9, id_ib_ui), pw_ib_ui), sk_ui_ib) in
+	let h9 = h(concat(concat(nx9,n9), pdata9)) in
+	let payment_tok_for_ib = concat(concat(nx9, pdata9), h9) in
+	new payment_tok_for_ts:bitstring;
+	let data_for_tsi = concat(payment_tok_for_ib, payment_tok_for_ts) in
+	new n10:bitstring;
+	let pdata10 = xor(data_for_tsi, n10) in
+	let nx10 = xor (n10, sk_spc_src) in
+	let h10=h(concat(concat(nx10,n10), pdata10)) in
+	out(ch_spc_src, (nx10, pdata10, h10));
+
+	
+	event spc_end(id_ib_ui);
+	0.
+
+let src (id_rto_vi:bitstring, pw_rto_vmi:bitstring, sk_vi_rto:bitstring) =
+	event src_begin(id_rto_vmi);
+
+	(*M1-in-from-ts*)
+	in(ch_src_ts, (id_rto_tsi:bitstring));
+	
+	(*M2-out-to-ts*)
+	new n4:bitstring;
+	new location:bitstring;
+	new time:bitstring;
+	let nx4    = xor(xor(n4, id_rto_vi), sk_vi_rto) in
+	let data4  = concat(concat(concat(id_rto_vi, id_rto_tsi), location), time) in
+	let pdata4 = xor(data4, n4) in
+	let h4     = h(concat(concat(nx4,n4), pdata4)) in
+	out(ch_src_ts, (nx4, pdata4, h4));
+
+	(*M5-in-from-ts*)
+	in(ch_src_ts, (nx6:bitstring, pdata6:bitstring, h6:bitstring));
+
+
+	(*M6-out-to-spc*)
+	let n6' = xor(xor(nx6, id_rto_vi), sk_vi_rto) in
+	let h6' = h(concat(concat(nx6, n6'), pdata6)) in
+	if (h6' = h6) then
+	let toll_tkt_stamped' = xor(pdata6, n6') in
+	(* split toll_tkt_stamped' to retrieve individual elements *)
+	let (tolltkt:bitstring, stamp_rto:bitstring) = split (toll_tkt_stamped') in
+	new n8:bitstring;
+	new fare:bitstring;
+	let payment_req = concat(tolltkt, fare) in
+	let nx8 = xor(n8, sk_spc_src) in
+	let pdata8 = xor(payment_req, n8) in
+	let h8 = h(concat(concat(nx8, n8), pdata8)) in
+	out(ch_src_spc, (nx8, pdata8, h8));
+
+
+	(*M9-in-from-src*)
+	in(ch_spc_src, (nx10:bitstring, pdata10:bitstring, h10:bitstring));
+
+	(*M10-out-to-tsi*)
+	let n10' = xor(nx10, sk_spc_src) in
+	let h10' = h(concat(concat(nx10, n10'), pdata10)) in
+	if (h10' = h10) then
+	let data_for_tsi' = xor(pdata10, n10') in
+	(*forward data_for_tsi to tsi*)
+	new n11:bitstring;
+	let nx11=xor(xor(n11, id_rto_vi), sk_vi_rto) in
+	let pdata11=xor(data_for_tsi', n11) in
+	let h11=h(concat(concat(nx11,n11), pdata11)) in
+	out(ch_src_ts, (nx11, pdata11, h11));
+	
+	event src_end(id_rto_vmi);
+	0.
+
+let ts (id_rto_tsi:bitstring, pw_rto_tsi:bitstring, sk_tsi_rto:bitstring) = 
+	event ts_begin(id_rto_tsi);
+
+	(*M1-out-to-src*)
+	out(ch_src_ts, (id_rto_tsi));
+
+	(*M2-in-from-src*)
+	in(ch_src_ts, (nx4:bitstring, pdata4:bitstring, h4:bitstring));
+
+	(*M3-out-to-rto*)
+	new n5:bitstring;
+	new fromLocation:bitstring;
+	new toLocation:bitstring;
+	new fare:bitstring;
+	let data5  = concat(concat(concat(concat(concat(concat(nx4, pdata4),h4),id_rto_tsi), fromLocation), toLocation), fare) in
+	let nx5    = xor(xor(xor(n5, id_rto_tsi), pw_rto_tsi), sk_tsi_rto) in
+	let pdata5 = xor(data5, n5) in
+	let h5     = h(concat(concat(nx5, n5), pdata5)) in
+	out(ch_ts_rto, (nx5, pdata5, h5));
+
+	(*M4-in-from-rto*)
+	in(ch_ts_rto, (nx7:bitstring, pdata7:bitstring, h7:bitstring));
+
+	(*M5-out-to-src*)
+	let n7' = xor(xor(xor(nx7, id_rto_vi), pw_rto_vi), sk_tsi_rto) in
+	let h7' = h(concat(concat(nx7, n7'), pdata7)) in
+	if (h7' = h7) then
+	let data7' = xor(pdata7, n7') in
+	(* split data7' to retrieve individual elements *)
+	let ( toll_tkt_stamped':bitstring, data_rto2vi':bitstring) = split (data7') in
+	(* split data_rto2vi' to retrieve individual elements *)
+	let (   c1:bitstring,     h6':bitstring) = split (data_rto2vi') in
+	let ( nx6':bitstring, pdata6':bitstring) = split (c1) in
+	out(ch_src_ts, (nx6', pdata6', h6'));
+
+
+	(*M10-in-from-src*)
+	in(ch_src_ts, (nx11:bitstring, pdata11:bitstring, h11:bitstring));
+	let n11' = xor(xor(nx11, id_rto_vi), sk_vi_rto) in
+	let h11' = h(concat(concat(nx11, n11'), pdata11)) in
+	if (h11' = h11) then
+	let data_for_tsi' = xor(pdata11, n11') in
+	(* split data_for_tsi' to retrieve individual elements *)
+	let (payment_tok_for_ib:bitstring, payment_tok_for_ts:bitstring) = split (data_for_tsi') in
+	(* split payment_tok_for_ib' to retrieve individual elements *)
+	let ( c1:bitstring,       h9:bitstring) = split (payment_tok_for_ib) in
+	let ( nx9:bitstring,  pdata9:bitstring) = split (c1) in
+	out(ch_ts_ib, (nx9, pdata9, h9));
+	
+	event ts_end(id_rto_tsi);
+	0.
+
+let rto (id_rto_tsi:bitstring, pw_rto_tsi:bitstring, s2_rto:bitstring, r2_rto:bitstring) = 
+	event rto_begin(id_rto_tsi);
+
+	(*M3-in-from-ts*)
+	in(ch_src_ts, (nx5:bitstring, pdata5:bitstring, h5:bitstring));
+
+	let n5' = xor(xor(xor(nx5, sk_tsi_rto), s1_rto), r1_rto) in
+	let h5' = h(concat(concat(nx5, n5'), pdata5)) in
+	if (h5' = h5) then
+	let data5' = xor(pdata5, n5') in
+	(* split data5' to retrieve individual elements *)
+	let ( c1:bitstring,         fare':bitstring) = split (data5') in
+	let ( c2:bitstring,   toLocation':bitstring) = split (c1) in
+	let ( c3:bitstring, fromLocation':bitstring) = split (c2) in
+	let ( c4:bitstring,    id_rto_tsi:bitstring) = split (c3) in
+	let ( c5:bitstring,            h4:bitstring) = split (c4) in
+	let (nx4:bitstring,        pdata4:bitstring) = split (c5) in
+	let n4' = xor(xor(xor(nx4, sk_tsi_rto), s2_rto), r2_rto) in
+	let h4' = h(concat(concat(nx4, n4'), pdata4)) in
+	if (h4' = h4) then
+	let data4' = xor(pdata4, n4') in
+	(* split data4' to retrieve individual elements *)
+	let ( c1:bitstring,               time':bitstring) = split (data4') in
+	let ( c2:bitstring,          vLocation':bitstring) = split (c1) in
+	let ( id_rto_vi':bitstring, id_rto_tsi':bitstring) = split (c2) in
+	(* create toll tkt *)
+	new tkt_id:bitstring;
+	new pv_key_rto:bitstring;
+	new fare:bitstring;
+	new time:bitstring;
+	new fromLocation:bitstring;
+	new toLocation:bitstring;
+	let tolltkt = concat(concat(concat(concat(concat (tkt_id, id_rto_tsi), fromLocation), toLocation), time), fare) in
+	let stamp_rto = xor(h(tolltkt), pv_key_rto) in
+	let toll_tkt_stamped = concat(tolltkt, stamp_rto) in
+
+	new n6:bitstring;
+	let nx6 = xor(xor(xor(n6, sk_vi_rto), s1_rto), r1_rto) in
+	let pdata6 = xor(toll_tkt_stamped, n6) in					
+	let h6=h(concat(concat(nx6, n6), pdata6)) in
+	let data_rto2vi = concat(concat(nx6, pdata6), h6) in
+	
+	new n7:bitstring;
+	let nx7 = xor(xor(xor(n7, sk_tsi_rto), s2_rto), r2_rto) in
+	let data7 = concat(toll_tkt_stamped, data_rto2vi) in
+	let pdata7 = xor(data7, n7) in					
+	let h7=h(concat(concat(nx7, n7), pdata7)) in
+
+	(*M4-out-to-ts*)
+	out(ch_ts_rto, (nx7, pdata7, h7));
+
+	event rto_end(id_rto_tsi);
+	0.
+
+let ib (id_ib_ui:bitstring, pw_ib_ui:bitstring, s_ib:bitstring, r_ib:bitstring) =
+	event ib_begin(id_ib_ui);
+	event ib_end(id_ib_ui);
+	0.
+
+let as  (id_as_ui:bitstring, pw_as_ui:bitstring, s_as:bitstring, r_as:bitstring, sk_ui_as:bitstring) =
+	event as_begin(id_as_ui);
+	event as_end(id_as_ui);
+	0.
+
+process
+	!user(id_as_ui, pw_as_ui) |
+	!uid (id_as_ui, pw_as_ui, sk_ui_as) |
+	!vm  (id_rto_vmi, pw_rto_vmi) |
+	!spc (id_ib_ui, sk_spc_src) |
+	!src (id_rto_vi, pw_rto_vmi, sk_vi_rto) |
+	!ts  (id_rto_tsi, pw_rto_tsi, sk_tsi_rto) |
+	!rto (id_rto_tsi, pw_rto_tsi, s2_rto, r2_rto) |
+	!ib  (id_ib_ui, pw_ib_ui, s_ib, r_ib) |
+	!as  (id_as_ui, pw_as_ui, s_as, r_as, sk_ui_as)
+	
+	
